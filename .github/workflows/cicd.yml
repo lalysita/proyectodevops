@@ -60,8 +60,8 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           password: ${{ secrets.VPS_PASSWORD }}
-          # CAMBIO: Usamos el puerto 1002 explícitamente para saltar bloqueos
-          port: 1002
+          # RESTAURADO: Usamos el secreto. Asegúrate que en GitHub sea 1001
+          port: ${{ secrets.VPS_SSH_PORT }}
           script: |
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             
