@@ -60,8 +60,8 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           password: ${{ secrets.VPS_PASSWORD }}
-          # RESTAURADO: Usamos el secreto. Asegúrate que en GitHub sea 1001
-          port: ${{ secrets.VPS_SSH_PORT }}
+          # CAMBIO: Puerto 1003 forzado para evadir bloqueos
+          port: 1003
           script: |
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             
@@ -71,7 +71,8 @@ jobs:
             # Limpieza preventiva
             rm -f docker-compose.yml || true
             
-            # --- GENERACIÓN DEL STACK BLINDADO ---
+            # --- GENERACIÓN DEL STACK ---
+            # Variable para manejar las comillas invertidas correctamente
             export HOST_RULE='Host(`banda.byronrm.com`)'
             
             cat <<EOF > stack.yml
@@ -107,7 +108,7 @@ jobs:
                 name: traefik-public
             EOF
             
-           
+            # --- DEBUG ---
             echo "--- VERIFICANDO ARCHIVO STACK.YML ---"
             cat stack.yml
             echo "-------------------------------------"
