@@ -55,18 +55,21 @@ jobs:
     
     steps:
       - name: Despliegue en VPS via SSH (Modo Swarm)
-        # Usamos v1 para máxima compatibilidad (Igual que Jordy)
-        uses: appleboy/ssh-action@v1
+        # ⚠️ VOLVEMOS A v1.0.0 PARA ESTABILIDAD CON PUERTO 1001
+        uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           password: ${{ secrets.VPS_PASSWORD }}
-          port: ${{ secrets.VPS_SSH_PORT }} # Esto tomará el 1001 de tus secretos
+          port: ${{ secrets.VPS_SSH_PORT }} # Asegúrate que en GitHub Secrets este valor sea 1001
           script: |
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             
             mkdir -p ~/examen_banda
             cd ~/examen_banda
+            
+            # --- LIMPIEZA: BORRAMOS EL ARCHIVO VIEJO QUE CAUSA CONFUSIÓN ---
+            rm -f docker-compose.yml || true
             
             # --- GENERAMOS EL stack.yml PARA SWARM ---
             cat <<EOF > stack.yml
