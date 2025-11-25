@@ -69,7 +69,7 @@ jobs:
             mkdir -p ~/examen_banda
             cd ~/examen_banda
             
-            # 3. Crear docker-compose CON LA RED PÚBLICA CORRECTA
+            # 3. Crear docker-compose (Con red traefik-public y sin entrypoints forzados)
             cat <<EOF > docker-compose.yml
             version: '3.8'
             services:
@@ -84,7 +84,6 @@ jobs:
                 labels:
                   - "traefik.enable=true"
                   - "traefik.http.routers.banda.rule=Host(\`banda.byronrm.com\`)"
-                  - "traefik.http.routers.banda.entrypoints=websecure"
                   - "traefik.http.routers.banda.tls.certresolver=myresolver"
                   - "traefik.http.services.banda.loadbalancer.server.port=5000"
                   - "traefik.docker.network=traefik-public"
