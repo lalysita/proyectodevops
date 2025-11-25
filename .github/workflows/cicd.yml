@@ -55,8 +55,8 @@ jobs:
     
     steps:
       - name: Despliegue en VPS via SSH (Modo Swarm)
-        # CAMBIO PEQUEÑO: Usamos 'v1' como Jordy, por si acaso
-        uses: appleboy/ssh-action@v1
+        # ⚠️ IMPORTANTE: Usamos v1.0.0 porque esta es la que te conecta bien
+        uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
@@ -68,7 +68,7 @@ jobs:
             mkdir -p ~/examen_banda
             cd ~/examen_banda
             
-            # --- GENERAMOS EL stack.yml PARA SWARM ---
+            # --- GENERAMOS EL stack.yml (ESTRUCTURA TIPO JORDY/SWARM) ---
             cat <<EOF > stack.yml
             version: '3.8'
             services:
@@ -102,15 +102,15 @@ jobs:
                 name: traefik-public
             EOF
             
-            # --- DESPLIEGUE MODO SWARM ---
-            echo "Actualizando servicio..."
+            # --- DESPLIEGUE FINAL ---
+            echo "Descargando imagen..."
             docker pull ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ env.TAG }}
             
-            # Limpieza del stack anterior
+            # Limpiamos el stack viejo por si acaso (para evitar conflictos de cache)
             docker stack rm banda_stack || true
             
-            # Espera técnica
-            sleep 20
+            # Esperamos 10 segundos para que se libere el nombre
+            sleep 10
             
-            # Despliegue final
+            # Desplegamos el Stack
             docker stack deploy --with-registry-auth -c stack.yml banda_stack
