@@ -60,7 +60,8 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           password: ${{ secrets.VPS_PASSWORD }}
-          port: ${{ secrets.VPS_SSH_PORT }} # Puerto 1001
+          # CAMBIO: Usamos el puerto 1002 explícitamente para saltar bloqueos
+          port: 1002
           script: |
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             
@@ -70,8 +71,7 @@ jobs:
             # Limpieza preventiva
             rm -f docker-compose.yml || true
             
-            # --- GENERACIÓN DEL STACK BLINDADO CONTRA ERRORES DE COMILLAS ---
-            # Usamos una variable para el host para evitar problemas de escape complejos
+            # --- GENERACIÓN DEL STACK BLINDADO ---
             export HOST_RULE='Host(`banda.byronrm.com`)'
             
             cat <<EOF > stack.yml
@@ -94,7 +94,6 @@ jobs:
                     - "traefik.http.routers.banda-final-secure.entrypoints=https"
                     - "traefik.http.routers.banda-final-secure.rule=\$HOST_RULE"
                     - "traefik.http.routers.banda-final-secure.tls=true"
-                    # Usamos 'http' como resolver (Basado en el ejemplo de Jordy)
                     - "traefik.http.routers.banda-final-secure.tls.certresolver=http"
                     - "traefik.http.routers.banda-final-secure.service=banda-service"
                     - "traefik.http.services.banda-service.loadbalancer.server.port=5000"
@@ -108,7 +107,7 @@ jobs:
                 name: traefik-public
             EOF
             
-            # --- DEBUG: Muestra el archivo generado en los logs de GitHub para verificar ---
+            # --- DEBUG ---
             echo "--- VERIFICANDO ARCHIVO STACK.YML ---"
             cat stack.yml
             echo "-------------------------------------"
@@ -116,9 +115,7 @@ jobs:
             # --- DESPLIEGUE ---
             docker pull ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:latest
             
-            # Limpiar stack viejo
             docker stack rm banda_stack || true
             sleep 15
             
-            # Desplegar nuevo
             docker stack deploy --with-registry-auth -c stack.yml banda_stack
