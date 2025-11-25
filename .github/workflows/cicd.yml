@@ -54,7 +54,7 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Despliegue en VPS via SSH
+      - name: Despliegue en VPS via SSH (Modo Swarm)
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -62,40 +62,50 @@ jobs:
           password: ${{ secrets.VPS_PASSWORD }}
           port: ${{ secrets.VPS_SSH_PORT }}
           script: |
-            # 1. Login Docker
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             
-            # 2. Preparar directorio
             mkdir -p ~/examen_banda
             cd ~/examen_banda
             
-            # 3. Crear docker-compose (Con red traefik-public y sin entrypoints forzados)
-            # Usamos comillas simples en el Host para evitar problemas de escape en el script
-            cat <<EOF > docker-compose.yml
+            # --- GENERAMOS EL stack.yml BASADO EN EL EJEMPLO DE JORDY ---
+            cat <<EOF > stack.yml
             version: '3.8'
             services:
               web:
                 image: ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ env.TAG }}
-                container_name: examen_banda_container
-                restart: always
-                expose:
-                  - "5000"
+                deploy:
+                  replicas: 1
+                  restart_policy:
+                    condition: on-failure
+                  labels:
+                    - "traefik.enable=true"
+                    # Configuración HTTP (Redirección a HTTPS)
+                    - "traefik.http.routers.banda.entrypoints=http"
+                    - "traefik.http.routers.banda.rule=Host('banda.byronrm.com')"
+                    - "traefik.http.middlewares.banda-https-redirect.redirectscheme.scheme=https"
+                    - "traefik.http.routers.banda.middlewares=banda-https-redirect"
+                    # Configuración HTTPS (Segura)
+                    - "traefik.http.routers.banda-secure.entrypoints=https"
+                    - "traefik.http.routers.banda-secure.rule=Host('banda.byronrm.com')"
+                    - "traefik.http.routers.banda-secure.tls=true"
+                    # Usamos 'myresolver' que es el estándar del examen, o 'http' si Jordy usó ese
+                    - "traefik.http.routers.banda-secure.tls.certresolver=myresolver"
+                    - "traefik.http.routers.banda-secure.service=banda-service"
+                    - "traefik.http.services.banda-service.loadbalancer.server.port=5000"
+                    - "traefik.docker.network=traefik-public"
                 networks:
-                  - traefik_public
-                labels:
-                  - "traefik.enable=true"
-                  - "traefik.http.routers.banda.rule=Host('banda.byronrm.com')"
-                  - "traefik.http.routers.banda.tls.certresolver=myresolver"
-                  - "traefik.http.services.banda.loadbalancer.server.port=5000"
-                  - "traefik.docker.network=traefik-public"
+                  - traefik-public
             
             networks:
-              traefik_public:
-                external:
-                  name: traefik-public
+              traefik-public:
+                external: true
+                name: traefik-public
             EOF
             
-            # 4. Actualizar servicio
+            # --- DESPLIEGUE MODO SWARM ---
+            echo "Actualizando servicio..."
             docker pull ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ env.TAG }}
-            docker compose down
-            docker compose up -d
+            
+            # Desplegamos el stack (Esto actualiza si ya existe o crea si es nuevo)
+            # Usamos '--with-registry-auth' para que el Swarm pueda bajar la imagen privada
+            docker stack deploy --with-registry-auth -c stack.yml banda_stack
