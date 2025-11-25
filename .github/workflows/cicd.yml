@@ -55,13 +55,13 @@ jobs:
     
     steps:
       - name: Despliegue en VPS via SSH (Modo Swarm)
-        # Usamos la versión v1.0.0 que es la más compatible
-        uses: appleboy/ssh-action@v1.0.0
+        # Usamos v1 para máxima compatibilidad (Igual que Jordy)
+        uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           password: ${{ secrets.VPS_PASSWORD }}
-          port: ${{ secrets.VPS_SSH_PORT }}
+          port: ${{ secrets.VPS_SSH_PORT }} # Esto tomará el 1001 de tus secretos
           script: |
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             
@@ -73,7 +73,6 @@ jobs:
             version: '3.8'
             services:
               web:
-                # CAMBIO: Usamos 'latest' explícitamente como pediste
                 image: ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:latest
                 deploy:
                   replicas: 1
@@ -105,13 +104,12 @@ jobs:
             
             # --- DESPLIEGUE FINAL ---
             echo "Descargando imagen latest..."
-            # CAMBIO: Pull de latest
             docker pull ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:latest
             
             # Limpiamos el stack viejo
             docker stack rm banda_stack || true
             
-            # Esperamos 10 segundos
+            # Esperamos a que libere recursos
             sleep 10
             
             # Desplegamos el Stack
