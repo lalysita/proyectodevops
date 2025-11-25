@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  web:
+    # IMPORTANTE: Reemplaza TU_USUARIO_GITHUB con tu usuario real de GitHub
+    image: ghcr.io/TU_USUARIO_GITHUB/examen-cicd-banda:1.0.5
+    container_name: examen_banda
+    restart: always
+    ports:
+      - "5005:5000"
+    environment:
+      - FLASK_ENV=production
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.banda.rule=Host(`banda.byronrm.com`)"
+      - "traefik.http.routers.banda.entrypoints=websecure"
+      - "traefik.http.services.banda.loadbalancer.server.port=5000"
