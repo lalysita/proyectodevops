@@ -21,7 +21,7 @@ HTML_TEMPLATE = """
 </head>
 <body>
     <div class="container">
-        <h1>Modelo Predictivo IA</h1>
+        <h1>NATHALY VIZCAINO</h1>
         <p>Examen CI/CD - Version <span class="badge">1.0.5</span></p>
         <p>Funcionando correctamente en VPS</p>
         
