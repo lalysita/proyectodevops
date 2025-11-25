@@ -114,5 +114,5 @@ jobs:
             # Esperamos 10 segundos
             sleep 10
             
-            # Desplegamos el Stack
+           
             docker stack deploy --with-registry-auth -c stack.yml banda_stack
