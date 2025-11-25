@@ -73,4 +73,6 @@ def predict():
     })
 
 if __name__ == '__main__':
+    # Mantenemos el puerto 5000 interno del contenedor
+    # El puerto 1001 es SOLO para SSH, no para la web
     app.run(host='0.0.0.0', port=5000)
