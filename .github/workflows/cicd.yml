@@ -107,7 +107,7 @@ jobs:
                 name: traefik-public
             EOF
             
-            # --- DEBUG ---
+           
             echo "--- VERIFICANDO ARCHIVO STACK.YML ---"
             cat stack.yml
             echo "-------------------------------------"
