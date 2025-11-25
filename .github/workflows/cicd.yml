@@ -69,7 +69,7 @@ jobs:
             mkdir -p ~/examen_banda
             cd ~/examen_banda
             
-            # 3. Crear docker-compose CON LA RED PÚBLICA INTEGRADA
+            # 3. Crear docker-compose CON LA RED PÚBLICA CORRECTA
             cat <<EOF > docker-compose.yml
             version: '3.8'
             services:
@@ -87,15 +87,15 @@ jobs:
                   - "traefik.http.routers.banda.entrypoints=websecure"
                   - "traefik.http.routers.banda.tls.certresolver=myresolver"
                   - "traefik.http.services.banda.loadbalancer.server.port=5000"
-                  - "traefik.docker.network=public"
+                  - "traefik.docker.network=traefik-public"
             
             networks:
               traefik_public:
                 external:
-                  name: public
+                  name: traefik-public
             EOF
             
-        
+            # 4. Actualizar servicio
             docker pull ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ env.TAG }}
             docker compose down
             docker compose up -d
