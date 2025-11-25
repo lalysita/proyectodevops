@@ -55,23 +55,25 @@ jobs:
     
     steps:
       - name: Despliegue en VPS via SSH (Modo Swarm)
-        # ⚠️ VOLVEMOS A v1.0.0 PARA ESTABILIDAD CON PUERTO 1001
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           password: ${{ secrets.VPS_PASSWORD }}
-          port: ${{ secrets.VPS_SSH_PORT }} # Asegúrate que en GitHub Secrets este valor sea 1001
+          port: ${{ secrets.VPS_SSH_PORT }} # Puerto 1001 (Verificado)
           script: |
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             
             mkdir -p ~/examen_banda
             cd ~/examen_banda
             
-            # --- LIMPIEZA: BORRAMOS EL ARCHIVO VIEJO QUE CAUSA CONFUSIÓN ---
+            # Limpieza preventiva
             rm -f docker-compose.yml || true
             
-            # --- GENERAMOS EL stack.yml PARA SWARM ---
+            # --- GENERACIÓN DEL STACK BLINDADO CONTRA ERRORES DE COMILLAS ---
+            # Usamos una variable para el host para evitar problemas de escape complejos
+            export HOST_RULE='Host(`banda.byronrm.com`)'
+            
             cat <<EOF > stack.yml
             version: '3.8'
             services:
@@ -83,17 +85,17 @@ jobs:
                     condition: on-failure
                   labels:
                     - "traefik.enable=true"
-                    # Configuración HTTP (Redirección a HTTPS)
-                    - "traefik.http.routers.banda.entrypoints=http"
-                    - "traefik.http.routers.banda.rule=Host('banda.byronrm.com')"
+                    # HTTP -> HTTPS Redirect
+                    - "traefik.http.routers.banda-final.entrypoints=http"
+                    - "traefik.http.routers.banda-final.rule=\$HOST_RULE"
                     - "traefik.http.middlewares.banda-https-redirect.redirectscheme.scheme=https"
-                    - "traefik.http.routers.banda.middlewares=banda-https-redirect"
-                    # Configuración HTTPS (Segura)
-                    - "traefik.http.routers.banda-secure.entrypoints=https"
-                    - "traefik.http.routers.banda-secure.rule=Host('banda.byronrm.com')"
-                    - "traefik.http.routers.banda-secure.tls=true"
-                    - "traefik.http.routers.banda-secure.tls.certresolver=myresolver"
-                    - "traefik.http.routers.banda-secure.service=banda-service"
+                    - "traefik.http.routers.banda-final.middlewares=banda-https-redirect"
+                    # HTTPS Config
+                    - "traefik.http.routers.banda-final-secure.entrypoints=https"
+                    - "traefik.http.routers.banda-final-secure.rule=\$HOST_RULE"
+                    - "traefik.http.routers.banda-final-secure.tls=true"
+                    - "traefik.http.routers.banda-final-secure.tls.certresolver=http"
+                    - "traefik.http.routers.banda-final-secure.service=banda-service"
                     - "traefik.http.services.banda-service.loadbalancer.server.port=5000"
                     - "traefik.docker.network=traefik-public"
                 networks:
@@ -105,15 +107,17 @@ jobs:
                 name: traefik-public
             EOF
             
-            # --- DESPLIEGUE FINAL ---
-            echo "Descargando imagen latest..."
+            # --- DEBUG: Muestra el archivo generado en los logs de GitHub para verificar ---
+            echo "--- VERIFICANDO ARCHIVO STACK.YML ---"
+            cat stack.yml
+            echo "-------------------------------------"
+
+            # --- DESPLIEGUE ---
             docker pull ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:latest
             
-            # Limpiamos el stack viejo
+            # Limpiar stack viejo
             docker stack rm banda_stack || true
+            sleep 15
             
-            # Esperamos a que libere recursos
-            sleep 10
-            
-            # Desplegamos el Stack
+            # Desplegar nuevo
             docker stack deploy --with-registry-auth -c stack.yml banda_stack
