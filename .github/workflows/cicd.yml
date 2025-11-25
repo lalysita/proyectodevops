@@ -55,7 +55,7 @@ jobs:
     
     steps:
       - name: Despliegue en VPS via SSH (Modo Swarm)
-        # ⚠️ IMPORTANTE: Usamos v1.0.0 porque esta es la que te conecta bien
+        # Usamos la versión v1.0.0 que es la más compatible
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -68,12 +68,13 @@ jobs:
             mkdir -p ~/examen_banda
             cd ~/examen_banda
             
-            # --- GENERAMOS EL stack.yml (ESTRUCTURA TIPO JORDY/SWARM) ---
+            # --- GENERAMOS EL stack.yml PARA SWARM ---
             cat <<EOF > stack.yml
             version: '3.8'
             services:
               web:
-                image: ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ env.TAG }}
+                # CAMBIO: Usamos 'latest' explícitamente como pediste
+                image: ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:latest
                 deploy:
                   replicas: 1
                   restart_policy:
@@ -103,13 +104,14 @@ jobs:
             EOF
             
             # --- DESPLIEGUE FINAL ---
-            echo "Descargando imagen..."
-            docker pull ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:${{ env.TAG }}
+            echo "Descargando imagen latest..."
+            # CAMBIO: Pull de latest
+            docker pull ghcr.io/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:latest
             
-            # Limpiamos el stack viejo por si acaso (para evitar conflictos de cache)
+            # Limpiamos el stack viejo
             docker stack rm banda_stack || true
             
-            # Esperamos 10 segundos para que se libere el nombre
+            # Esperamos 10 segundos
             sleep 10
             
             # Desplegamos el Stack
