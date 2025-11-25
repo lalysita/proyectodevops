@@ -60,7 +60,7 @@ jobs:
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
+          password: ${{ secrets.VPS_SSH_KEY }}
           # El script inyecta la configuración directamente en el servidor
           script: |
             # 1. Login Docker
